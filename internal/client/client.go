@@ -51,10 +51,12 @@ type Config struct {
 	Insecure    bool
 	Timeout     time.Duration
 
-	// UseProjectIDPath 가 true 면 요청 경로에 project_id 를 삽입합니다.
+	// UseProjectIDPath 가 true 면 volume 이외 서비스의 요청 경로에도 project_id 를
+	// 삽입합니다.
 	//   false: /{zone}/server/servers
 	//   true : /{zone}/server/{project_id}/servers
-	// 규격서와 맞지 않을 때만 true 로 바꾸세요.
+	// volume 서비스는 kt cloud 쪽에서 project_id 가 항상 필수라 이 옵션과 무관하게
+	// 자동으로 삽입됩니다. 규격서와 맞지 않을 때만 true 로 바꾸세요.
 	UseProjectIDPath bool
 }
 
@@ -314,12 +316,24 @@ func (c *Client) URLFor(svc Service, path string) string {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	if c.cfg.UseProjectIDPath {
+	if c.needsProjectIDPath(svc) {
 		if pid := c.ProjectID(); pid != "" {
 			return fmt.Sprintf("%s/%s/%s/%s%s", c.cfg.APIBase, c.cfg.Zone, svc, pid, path)
 		}
 	}
 	return fmt.Sprintf("%s/%s/%s%s", c.cfg.APIBase, c.cfg.Zone, svc, path)
+}
+
+// needsProjectIDPath 는 서비스별로 경로에 project_id 를 넣어야 하는지 판단합니다.
+// 실 계정으로 확인한 결과 volume(cinder) 은 project_id 가 없으면 500 이 나고,
+// server/image 는 반대로 project_id 를 붙이면 500 이 난다. 서비스마다 동작이
+// 다르므로 전역 옵션 하나로는 표현할 수 없어, volume 은 항상 강제하고 나머지는
+// cfg.UseProjectIDPath 로 수동 오버라이드할 수 있게 둔다.
+func (c *Client) needsProjectIDPath(svc Service) bool {
+	if svc == ServiceVolume {
+		return true
+	}
+	return c.cfg.UseProjectIDPath
 }
 
 // Do 는 인증 헤더를 붙여 요청하고 JSON 응답을 out 에 언마샬합니다.

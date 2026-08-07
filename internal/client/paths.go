@@ -32,8 +32,8 @@ const (
 	PathVolumeDetail = "/volumes/detail"
 
 	// --- Image (service: image) ---
-	PathImages   = "/v2/images"
-	PathImageFmt = "/v2/images/%s"
+	PathImages   = "/images"
+	PathImageFmt = "/images/%s"
 
 	// --- Networking / Tier (service: nc) ---
 	PathNetworks = "/networks"
