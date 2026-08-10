@@ -85,10 +85,16 @@ func (e *APIError) Error() string {
 }
 
 // IsNotFound 는 404 여부를 반환합니다. (Read 단계에서 상태 제거 판단용)
+// kt cloud 는 리소스가 없을 때 HTTP 상태코드는 400 인데 응답 본문에
+// {"itemNotFound": {"code": 404, ...}} 를 담아 보내는 경우가 있어, 본문도
+// 함께 확인합니다.
 func IsNotFound(err error) bool {
 	var apiErr *APIError
 	if ok := asAPIError(err, &apiErr); ok {
-		return apiErr.StatusCode == http.StatusNotFound
+		if apiErr.StatusCode == http.StatusNotFound {
+			return true
+		}
+		return strings.Contains(apiErr.Body, "itemNotFound")
 	}
 	return false
 }

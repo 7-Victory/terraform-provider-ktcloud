@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +12,24 @@ import (
 // IDRef 는 flavor/image 처럼 id 만 담긴 참조 객체입니다.
 type IDRef struct {
 	ID string `json:"id"`
+}
+
+// UnmarshalJSON 은 {"id": "..."} 형태뿐 아니라 kt cloud 가 볼륨 부팅한 VM 에 대해
+// image 필드로 돌려주는 빈 문자열("") 도 허용합니다.
+func (r *IDRef) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		r.ID = s
+		return nil
+	}
+	var obj struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+	r.ID = obj.ID
+	return nil
 }
 
 // Address 는 서버에 붙은 IP 정보입니다.
@@ -78,8 +97,10 @@ type NetworkOpts struct {
 }
 
 // BlockDevice 는 루트/데이터 볼륨 설정입니다.
+// BootIndex 는 kt cloud Nova 게이트웨이가 문자열 타입을 요구하기 때문에
+// string 입니다. 숫자로 보내면 500 Internal server error 가 납니다.
 type BlockDevice struct {
-	BootIndex           int    `json:"boot_index"`
+	BootIndex           string `json:"boot_index"`
 	UUID                string `json:"uuid,omitempty"`
 	SourceType          string `json:"source_type"`      // image | volume | snapshot | blank
 	DestinationType     string `json:"destination_type"` // volume | local
