@@ -63,11 +63,12 @@ variable "network_id" {
 }
 
 resource "ktcloud_server" "web" {
-  name             = "tf-demo-web-01"
-  flavor_id        = data.ktcloud_flavors.small.flavors[0].id
-  image_id         = data.ktcloud_images.rocky.images[0].id
-  keypair_name     = ktcloud_keypair.demo.name
-  root_volume_size = 50
+  name              = "tf-demo-web-01"
+  flavor_id         = data.ktcloud_flavors.small.flavors[0].id
+  image_id          = data.ktcloud_images.rocky.images[0].id
+  keypair_name      = ktcloud_keypair.demo.name
+  availability_zone = "DX-M1" # d1 zone 의 AZ 이름. 비워두면 500 에러가 날 수 있음
+  root_volume_size  = 50
 
   networks {
     uuid = var.network_id

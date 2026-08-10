@@ -89,6 +89,15 @@ resource "ktcloud_server" "web" {
 | `metadata` | map(string) | 변경 시 **재생성** |
 | `networks` | block × N | `uuid`(필수), `fixed_ip`(선택). 변경 시 **재생성** |
 
+> ⚠️ **`networks.uuid` 는 kt cloud 자체 네트워크 관리 API(`/nsm/v1/network`) 응답의
+> `networkId` 가 아니라 `refId` 값을 써야 합니다.** `networkId` 를 넣으면
+> `Network ... could not be found` 400 에러가 납니다. 콘솔에서 네트워크(Tier) 정보를
+> 확인할 때 "네트워크 ID"로 표시되는 값과 실제 Nova 가 요구하는 UUID 가 다르니
+> `/nsm/v1/network` 응답의 `refId` 필드를 사용하세요.
+>
+> `availability_zone` 도 실제로는 지정하는 걸 권장합니다 (예: d1 zone 이면
+> `DX-M1`). 비워두면 API 게이트웨이가 `500 Internal server error` 를 낼 수 있습니다.
+
 Computed: `id`, `status`, `private_ip`, `public_ip`, `created_at`
 
 ```bash

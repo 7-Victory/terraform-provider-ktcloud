@@ -245,7 +245,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	// 루트 볼륨 크기를 지정하면 block_device_mapping_v2 로 부팅합니다.
 	if !plan.RootVolumeSize.IsNull() && plan.RootVolumeSize.ValueInt64() > 0 {
 		opts.BlockDevices = []client.BlockDevice{{
-			BootIndex:           0,
+			BootIndex:           "0",
 			UUID:                plan.ImageID.ValueString(),
 			SourceType:          "image",
 			DestinationType:     "volume",
