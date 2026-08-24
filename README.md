@@ -79,7 +79,7 @@ resource "ktcloud_server" "web" {
 | 인자 | 타입 | 비고 |
 |---|---|---|
 | `name` | string, 필수 | 변경 시 재생성 없이 이름만 수정 |
-| `flavor_id` | string, 필수 | 변경 시 **재생성** |
+| `flavor_id` | string, 필수 | 변경 시 재생성 없이 **resize API**로 처리 (resize → confirmResize) |
 | `image_id` | string, 필수 | 변경 시 **재생성** |
 | `keypair_name` | string | 변경 시 **재생성** |
 | `availability_zone` | string | 변경 시 **재생성** |
