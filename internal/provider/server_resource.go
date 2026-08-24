@@ -23,6 +23,7 @@ import (
 const (
 	serverCreateTimeout = 30 * time.Minute
 	serverDeleteTimeout = 20 * time.Minute
+	serverResizeTimeout = 15 * time.Minute
 )
 
 var (
@@ -99,11 +100,10 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "VM 이름. 변경 시 재생성 없이 이름만 수정됩니다.",
 			},
 			"flavor_id": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "VM 스펙 ID. `data.ktcloud_flavors` 로 조회할 수 있습니다.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				Required: true,
+				MarkdownDescription: "VM 스펙 ID. `data.ktcloud_flavors` 로 조회할 수 있습니다. " +
+					"변경 시 재생성 없이 resize API 로 처리됩니다 (kt cloud 쪽 사정으로 재부팅이 " +
+					"발생할 수 있습니다).",
 			},
 			"image_id": schema.StringAttribute{
 				Required:            true,
@@ -314,6 +314,13 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 	}
 
+	if plan.FlavorID.ValueString() != state.FlavorID.ValueString() {
+		if err := r.resizeServer(ctx, plan.ID.ValueString(), plan.FlavorID.ValueString()); err != nil {
+			resp.Diagnostics.AddError("VM 리사이즈 실패", err.Error())
+			return
+		}
+	}
+
 	srv, err := r.client.GetServer(ctx, plan.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("VM 조회 실패", err.Error())
@@ -322,6 +329,27 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	r.applyServerToModel(&plan, srv)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+
+// resizeServer 는 flavor 변경을 kt cloud resize API 로 처리합니다.
+// resize → VERIFY_RESIZE 대기 → confirmResize → ACTIVE 대기 순서입니다.
+// confirmResize 를 안 하면 kt cloud 가 일정 시간 후 자동 confirm 하거나 되돌릴 수 있어
+// 명시적으로 확정합니다.
+func (r *serverResource) resizeServer(ctx context.Context, id, flavorID string) error {
+	body := map[string]any{"resize": map[string]string{"flavorRef": flavorID}}
+	if err := r.client.ServerAction(ctx, id, body); err != nil {
+		return fmt.Errorf("resize 요청 실패: %w", err)
+	}
+	if _, err := r.client.WaitForServerStatus(ctx, id, "VERIFY_RESIZE", serverResizeTimeout); err != nil {
+		return fmt.Errorf("VERIFY_RESIZE 상태 대기 실패: %w", err)
+	}
+	if err := r.client.ServerAction(ctx, id, map[string]any{"confirmResize": nil}); err != nil {
+		return fmt.Errorf("resize 확정(confirmResize) 실패: %w", err)
+	}
+	if _, err := r.client.WaitForServerStatus(ctx, id, "ACTIVE", serverResizeTimeout); err != nil {
+		return fmt.Errorf("리사이즈 후 ACTIVE 상태 대기 실패: %w", err)
+	}
+	return nil
 }
 
 func (r *serverResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
