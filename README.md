@@ -81,7 +81,7 @@ resource "ktcloud_server" "web" {
 | `name` | string, 필수 | 변경 시 재생성 없이 이름만 수정 |
 | `flavor_id` | string, 필수 | 변경 시 재생성 없이 **resize API**로 처리 (resize → confirmResize) |
 | `image_id` | string, 필수 | 변경 시 **재생성** |
-| `keypair_name` | string | 변경 시 **재생성** |
+| `keypair_name` | string, 필수 | kt cloud API 상 Null 불가. 변경 시 **재생성** |
 | `availability_zone` | string | 변경 시 **재생성** |
 | `user_data` | string | 평문 입력. 변경 시 **재생성** |
 | `root_volume_size` | number | GB. 지정 시 `block_device_mapping_v2` 로 부팅 |
