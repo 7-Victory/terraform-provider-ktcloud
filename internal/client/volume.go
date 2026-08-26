@@ -28,13 +28,15 @@ type Volume struct {
 
 // CreateVolumeOpts 는 볼륨 생성 파라미터입니다.
 type CreateVolumeOpts struct {
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	Size        int64  `json:"size"`
-	VolumeType  string `json:"volume_type,omitempty"`
-	Zone        string `json:"availability_zone,omitempty"`
-	SnapshotID  string `json:"snapshot_id,omitempty"`
-	ImageRef    string `json:"imageRef,omitempty"`
+	Name          string `json:"name,omitempty"`
+	Description   string `json:"description,omitempty"`
+	Size          int64  `json:"size"`
+	VolumeType    string `json:"volume_type,omitempty"`
+	Zone          string `json:"availability_zone,omitempty"`
+	SnapshotID    string `json:"snapshot_id,omitempty"`
+	ImageRef      string `json:"imageRef,omitempty"`
+	UsagePlanType string `json:"usage_plan_type,omitempty"` // "hourly" | "monthly" (기본값 monthly)
+	Bootable      bool   `json:"bootable,omitempty"`        // 기본값 false
 }
 
 type volumeWrapper struct {

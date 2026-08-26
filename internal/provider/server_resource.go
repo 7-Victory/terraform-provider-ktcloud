@@ -113,8 +113,9 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"keypair_name": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "SSH 키페어 이름.",
+				Required: true,
+				MarkdownDescription: "SSH 키페어 이름. kt cloud API 상 필수값입니다 " +
+					"(Null 불가).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},

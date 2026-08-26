@@ -81,7 +81,7 @@ resource "ktcloud_server" "web" {
 | `name` | string, 필수 | 변경 시 재생성 없이 이름만 수정 |
 | `flavor_id` | string, 필수 | 변경 시 재생성 없이 **resize API**로 처리 (resize → confirmResize) |
 | `image_id` | string, 필수 | 변경 시 **재생성** |
-| `keypair_name` | string | 변경 시 **재생성** |
+| `keypair_name` | string, 필수 | kt cloud API 상 Null 불가. 변경 시 **재생성** |
 | `availability_zone` | string | 변경 시 **재생성** |
 | `user_data` | string | 평문 입력. 변경 시 **재생성** |
 | `root_volume_size` | number | GB. 지정 시 `block_device_mapping_v2` 로 부팅 |
@@ -135,6 +135,9 @@ terraform import ktcloud_keypair.demo <키페어이름>
 resource "ktcloud_volume" "data" {
   name = "data-01"
   size = 100          # GB. 늘리면 os-extend, 줄이면 오류
+
+  # usage_plan_type = "hourly"  # "hourly" | "monthly" (기본값 monthly). 미검증 옵션
+  # bootable        = true      # 부팅 가능 볼륨 여부, 기본값 false. 미검증 옵션
 }
 
 resource "ktcloud_volume_attachment" "data" {
