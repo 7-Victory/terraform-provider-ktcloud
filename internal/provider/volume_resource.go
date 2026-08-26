@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -43,6 +44,8 @@ type volumeResourceModel struct {
 	VolumeType       types.String `tfsdk:"volume_type"`
 	AvailabilityZone types.String `tfsdk:"availability_zone"`
 	SnapshotID       types.String `tfsdk:"snapshot_id"`
+	UsagePlanType    types.String `tfsdk:"usage_plan_type"`
+	Bootable         types.Bool   `tfsdk:"bootable"`
 	Status           types.String `tfsdk:"status"`
 	CreatedAt        types.String `tfsdk:"created_at"`
 }
@@ -112,6 +115,24 @@ func (r *volumeResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"usage_plan_type": schema.StringAttribute{
+				Optional: true,
+				MarkdownDescription: "과금 단위. `hourly` 또는 `monthly` (kt cloud 기본값 " +
+					"`monthly`). 미검증 옵션입니다.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"bootable": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "부팅 가능한 볼륨으로 생성할지 여부. 기본값 `false`. " +
+					"조회 시 kt cloud 응답(문자열 `\"true\"`/`\"false\"`)으로 갱신됩니다.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"status": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "볼륨 상태 (available, in-use 등).",
@@ -135,12 +156,14 @@ func (r *volumeResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	vol, err := r.client.CreateVolume(ctx, client.CreateVolumeOpts{
-		Name:        stringValue(plan.Name),
-		Description: stringValue(plan.Description),
-		Size:        plan.Size.ValueInt64(),
-		VolumeType:  stringValue(plan.VolumeType),
-		Zone:        stringValue(plan.AvailabilityZone),
-		SnapshotID:  stringValue(plan.SnapshotID),
+		Name:          stringValue(plan.Name),
+		Description:   stringValue(plan.Description),
+		Size:          plan.Size.ValueInt64(),
+		VolumeType:    stringValue(plan.VolumeType),
+		Zone:          stringValue(plan.AvailabilityZone),
+		SnapshotID:    stringValue(plan.SnapshotID),
+		UsagePlanType: stringValue(plan.UsagePlanType),
+		Bootable:      boolValue(plan.Bootable),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("볼륨 생성 실패", err.Error())
@@ -252,6 +275,8 @@ func applyVolumeToModel(m *volumeResourceModel, vol *client.Volume) {
 	m.CreatedAt = types.StringValue(vol.CreatedAt)
 	m.VolumeType = types.StringValue(vol.VolumeType)
 	m.AvailabilityZone = types.StringValue(vol.Zone)
+	// kt cloud 는 조회 응답에서 bootable 을 "true"/"false" 문자열로 돌려줍니다.
+	m.Bootable = types.BoolValue(strings.EqualFold(vol.Bootable, "true"))
 
 	if vol.Name != "" {
 		m.Name = types.StringValue(vol.Name)

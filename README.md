@@ -135,6 +135,9 @@ terraform import ktcloud_keypair.demo <키페어이름>
 resource "ktcloud_volume" "data" {
   name = "data-01"
   size = 100          # GB. 늘리면 os-extend, 줄이면 오류
+
+  # usage_plan_type = "hourly"  # "hourly" | "monthly" (기본값 monthly). 미검증 옵션
+  # bootable        = true      # 부팅 가능 볼륨 여부, 기본값 false. 미검증 옵션
 }
 
 resource "ktcloud_volume_attachment" "data" {
