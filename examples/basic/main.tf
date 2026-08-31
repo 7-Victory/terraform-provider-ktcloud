@@ -19,25 +19,6 @@ provider "ktcloud" {
 }
 
 # ---------------------------------------------------------------------------
-# 1) 스펙 / 이미지 조회
-# ---------------------------------------------------------------------------
-data "ktcloud_flavors" "small" {
-  name_contains = "2x4" # 예: 2vCore 4GB
-}
-
-data "ktcloud_images" "rocky" {
-  name_contains = "rocky"
-}
-
-output "available_flavors" {
-  value = data.ktcloud_flavors.small.flavors
-}
-
-output "available_images" {
-  value = data.ktcloud_images.rocky.images
-}
-
-# ---------------------------------------------------------------------------
 # 2) SSH 키페어
 # ---------------------------------------------------------------------------
 resource "ktcloud_keypair" "demo" {
@@ -57,21 +38,17 @@ output "private_key_pem" {
 # ---------------------------------------------------------------------------
 # 3) VM 생성
 # ---------------------------------------------------------------------------
-variable "network_id" {
-  description = "VM 을 붙일 네트워크(Tier) UUID"
-  type        = string
-}
 
 resource "ktcloud_server" "web" {
-  name              = "tf-demo-web-01"
-  flavor_id         = data.ktcloud_flavors.small.flavors[0].id
-  image_id          = data.ktcloud_images.rocky.images[0].id
+  name              = "tf-demo-web-03"
+  flavor_id         = "f9764e6b-1b46-421d-8998-816c2d8d13ce" # 1x1.itl (resize 테스트)
+  image_id          = "f1c9d84a-0486-484c-9074-b32e0aaafcab"
   keypair_name      = ktcloud_keypair.demo.name
   availability_zone = "DX-M1" # d1 zone 의 AZ 이름. 비워두면 500 에러가 날 수 있음
   root_volume_size  = 50
 
   networks {
-    uuid = var.network_id
+    uuid = "43d804af-8f11-4c90-9071-6fc526fde5e4"
   }
 
   user_data = <<-EOT
@@ -90,6 +67,7 @@ output "server_private_ip" {
   value = ktcloud_server.web.private_ip
 }
 
+
 # ---------------------------------------------------------------------------
 # 4) 데이터 볼륨 추가 후 VM 에 연결
 # ---------------------------------------------------------------------------
@@ -98,7 +76,8 @@ resource "ktcloud_volume" "data" {
   size = 100
 }
 
-resource "ktcloud_volume_attachment" "data" {
-  server_id = ktcloud_server.web.id
-  volume_id = ktcloud_volume.data.id
-}
+# resource "ktcloud_volume_attachment" "data" {
+#   server_id = ktcloud_server.web.id
+#   volume_id = ktcloud_volume.data.id
+# }
+# ↑ 주석 처리해서 destroy 되게 함 (볼륨 해제/detach 테스트)
