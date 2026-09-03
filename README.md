@@ -82,7 +82,7 @@ resource "ktcloud_server" "web" {
 | `flavor_id` | string, 필수 | 변경 시 재생성 없이 **resize API**로 처리 (resize → confirmResize) |
 | `image_id` | string, 필수 | 변경 시 **재생성** |
 | `keypair_name` | string, 필수 | kt cloud API 상 Null 불가. 변경 시 **재생성** |
-| `availability_zone` | string | 변경 시 **재생성** |
+| `availability_zone` | string | 생략 시 기본값 `"DX-M1"`(d1 zone 기준). 변경 시 **재생성** |
 | `user_data` | string | 평문 입력. 변경 시 **재생성** |
 | `root_volume_size` | number | GB. 지정 시 `block_device_mapping_v2` 로 부팅 |
 | `root_volume_type` | string | 위와 함께 사용 |
@@ -95,8 +95,10 @@ resource "ktcloud_server" "web" {
 > 확인할 때 "네트워크 ID"로 표시되는 값과 실제 Nova 가 요구하는 UUID 가 다르니
 > `/nsm/v1/network` 응답의 `refId` 필드를 사용하세요.
 >
-> `availability_zone` 도 실제로는 지정하는 걸 권장합니다 (예: d1 zone 이면
-> `DX-M1`). 비워두면 API 게이트웨이가 `500 Internal server error` 를 낼 수 있습니다.
+> `availability_zone` 을 생략하면 provider 가 `"DX-M1"`을 기본값으로 채웁니다. **이건 d1 zone
+> 전용 기본값**이라, `zone`을 `d2`/`gd1`/`gd4`로 쓰신다면 반드시 `availability_zone`을
+> 직접 지정하세요. (예전엔 생략 시 `500 Internal server error`가 났었는데, 이제 기본값이
+> 채워져서 d1 에서는 생략해도 됩니다.)
 
 Computed: `id`, `status`, `private_ip`, `public_ip`, `created_at`
 

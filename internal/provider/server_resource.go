@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -121,11 +122,15 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"availability_zone": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "가용 영역.",
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "가용 영역. 생략하면 `\"DX-M1\"`(d1 zone 기준)로 " +
+					"기본 설정됩니다. **d1 이 아닌 zone(d2/gd1/gd4)을 쓰신다면 이 기본값이 " +
+					"틀릴 수 있으니 반드시 직접 지정하세요.**",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Default: stringdefault.StaticString("DX-M1"),
 			},
 			"user_data": schema.StringAttribute{
 				Optional:            true,
