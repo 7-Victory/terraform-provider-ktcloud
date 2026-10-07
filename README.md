@@ -22,6 +22,7 @@ kt cloud @D Platform 의 Open API 는 RESTful 방식이며 OpenStack API 와 호
 | Resource | `ktcloud_volume_attachment` | 볼륨 ↔ VM 연결 |
 | Data Source | `ktcloud_flavors` | VM 스펙 목록 |
 | Data Source | `ktcloud_images` | OS 이미지 목록 |
+| Data Source | `ktcloud_networks` | 네트워크(Tier) 목록 |
 
 ---
 
@@ -89,11 +90,10 @@ resource "ktcloud_server" "web" {
 | `metadata` | map(string) | 변경 시 **재생성** |
 | `networks` | block × N | `uuid`(필수), `fixed_ip`(선택). 변경 시 **재생성** |
 
-> ⚠️ **`networks.uuid` 는 kt cloud 자체 네트워크 관리 API(`/nsm/v1/network`) 응답의
-> `networkId` 가 아니라 `refId` 값을 써야 합니다.** `networkId` 를 넣으면
-> `Network ... could not be found` 400 에러가 납니다. 콘솔에서 네트워크(Tier) 정보를
-> 확인할 때 "네트워크 ID"로 표시되는 값과 실제 Nova 가 요구하는 UUID 가 다르니
-> `/nsm/v1/network` 응답의 `refId` 필드를 사용하세요.
+> ⚠️ **`networks.uuid` 는 kt cloud 자체 네트워크 관리 ID(`networkId`)가 아니라
+> `refId` 값을 써야 합니다.** `networkId` 를 넣으면 `Network ... could not be found`
+> 400 에러가 납니다. 아래 `ktcloud_networks` 데이터소스로 조회하면 `id` 필드가 바로
+> `refId` 입니다.
 >
 > `availability_zone` 을 생략하면 provider 가 `"DX-M1"`을 기본값으로 채웁니다. **이건 d1 zone
 > 전용 기본값**이라, `zone`을 `d2`/`gd1`/`gd4`로 쓰신다면 반드시 `availability_zone`을
@@ -168,7 +168,15 @@ data "ktcloud_images" "rocky" {
   name_contains = "rocky"
 }
 # → images[*].{ id, name, status, min_disk, min_ram }
+
+data "ktcloud_networks" "dmz" {
+  name_contains = "DMZ"     # 대소문자 무시 부분 일치. 생략하면 전체
+}
+# → networks[*].{ id(=refId, networks.uuid 에 쓸 값), network_id, name, cidr, gateway_ip, type, status, shared }
 ```
+
+> ⚠️ 일부 항목(외부 업링크 등, `type = "ENT"`)은 `id`(refId)가 비어 있습니다. VM에
+> 연결할 땐 `id`가 비어있지 않은 항목만 쓰세요.
 
 ---
 

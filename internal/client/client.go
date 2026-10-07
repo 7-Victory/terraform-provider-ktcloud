@@ -31,7 +31,7 @@ type Service string
 const (
 	ServiceIdentity Service = "identity"
 	ServiceServer   Service = "server"        // Virtual Machine, SSH Keypair
-	ServiceNetwork  Service = "nc"            // Networking, Tier
+	ServiceNetwork  Service = "nsm"           // Networking, Tier (실측: /nc 는 전부 404, /nsm/v1 이 맞음)
 	ServiceVolume   Service = "volume"        // Volume, Snapshot
 	ServiceImage    Service = "image"         // Image
 	ServiceNAS      Service = "nas"           // NAS

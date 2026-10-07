@@ -64,7 +64,7 @@ resource "ktcloud_server" "web" {
 
 Required:
 
-- `uuid` (String) 네트워크(Tier) UUID. **kt cloud 네트워크 관리 API(`/nsm/v1/network`) 응답의 `networkId`가 아니라 `refId` 값을 써야 합니다.** `networkId`를 넣으면 `Network ... could not be found` 400 에러가 납니다.
+- `uuid` (String) 네트워크(Tier) UUID. **`networkId`가 아니라 `refId` 값을 써야 합니다.** `networkId`를 넣으면 `Network ... could not be found` 400 에러가 납니다. [`ktcloud_networks`](../data-sources/networks.md) 데이터소스로 조회하면 `id` 필드가 바로 `refId`입니다.
 
 Optional:
 

@@ -35,7 +35,7 @@ const (
 	PathImages   = "/images"
 	PathImageFmt = "/images/%s"
 
-	// --- Networking / Tier (service: nc) ---
-	PathNetworks = "/networks"
-	PathSubnets  = "/subnets"
+	// --- Networking / Tier (service: nsm) ---
+	// 공식 API 가이드에 문서화돼 있지 않아 실제 계정 응답을 보고 역추적한 경로입니다.
+	PathNetworks = "/v1/network"
 )

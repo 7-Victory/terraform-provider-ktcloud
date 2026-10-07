@@ -179,6 +179,7 @@ func (p *ktcloudProvider) DataSources(_ context.Context) []func() datasource.Dat
 	return []func() datasource.DataSource{
 		NewFlavorsDataSource,
 		NewImagesDataSource,
+		NewNetworksDataSource,
 	}
 }
 

@@ -61,9 +61,10 @@ export KTCLOUD_ZONE='d1'
 | Resource | [`ktcloud_volume_attachment`](resources/volume_attachment.md) | 볼륨 ↔ VM 연결 |
 | Data Source | [`ktcloud_flavors`](data-sources/flavors.md) | VM 스펙 목록 |
 | Data Source | [`ktcloud_images`](data-sources/images.md) | OS 이미지 목록 |
+| Data Source | [`ktcloud_networks`](data-sources/networks.md) | 네트워크(Tier) 목록 |
 
 ## 알아두어야 할 것
 
-- `ktcloud_server.networks.uuid`에는 kt cloud 네트워크 관리 API(`/nsm/v1/network`) 응답의 `networkId`가 아니라 **`refId`** 값을 써야 합니다. `networkId`를 넣으면 `Network ... could not be found` 400 에러가 납니다.
+- `ktcloud_server.networks.uuid`에는 `networkId`가 아니라 **`refId`** 값을 써야 합니다. `networkId`를 넣으면 `Network ... could not be found` 400 에러가 납니다. `ktcloud_networks` 데이터소스로 조회하면 `id` 필드가 바로 `refId`입니다.
 - `ktcloud_server.availability_zone`을 생략하면 `"DX-M1"`(d1 zone 기준)으로 기본 설정됩니다. `d1`이 아닌 zone(`d2`/`gd1`/`gd4`)을 쓰신다면 반드시 직접 지정하세요.
 - 개인키(`ktcloud_keypair.private_key`)는 **tfstate에 평문으로 저장**됩니다. state를 암호화된 원격 백엔드에 두거나, 운영 환경에서는 로컬에서 만든 공개키를 등록하는 방식을 권장합니다.
