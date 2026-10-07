@@ -108,9 +108,13 @@ type imagesWrapper struct {
 }
 
 // ListImages 는 이미지 목록을 조회합니다.
+// kt cloud 이미지 조회 API 는 limit 을 안 주면 전체 목록을 다 안 돌려줘서,
+// 모든 이미지를 받아오기 위해 limit=1000 을 고정으로 붙입니다
+// (사용자가 HCL 에서 바꿀 수 있는 옵션이 아닙니다).
 func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
 	var out imagesWrapper
-	if err := c.Do(ctx, http.MethodGet, ServiceImage, PathImages, nil, &out); err != nil {
+	path := fmt.Sprintf("%s?limit=1000", PathImages)
+	if err := c.Do(ctx, http.MethodGet, ServiceImage, path, nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Images, nil

@@ -168,6 +168,7 @@ data "ktcloud_images" "rocky" {
   name_contains = "rocky"
 }
 # → images[*].{ id, name, status, min_disk, min_ram }
+# (내부적으로 limit=1000 고정 조회 — 안 그러면 kt cloud API가 일부만 돌려줌)
 
 data "ktcloud_networks" "dmz" {
   name_contains = "DMZ"     # 대소문자 무시 부분 일치. 생략하면 전체
