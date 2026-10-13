@@ -41,14 +41,14 @@ output "private_key_pem" {
 
 resource "ktcloud_server" "web" {
   name              = "tf-demo-web-03"
-  flavor_id         = "f9764e6b-1b46-421d-8998-816c2d8d13ce" # 1x1.itl (resize 테스트)
-  image_id          = "f1c9d84a-0486-484c-9074-b32e0aaafcab"
+  flavor_id         = "" # data.ktcloud_flavors 로 조회한 id
+  image_id          = "" # data.ktcloud_images 로 조회한 id
   keypair_name      = ktcloud_keypair.demo.name
   availability_zone = "DX-M1" # d1 zone 의 AZ 이름. 비워두면 500 에러가 날 수 있음
   root_volume_size  = 50
 
   networks {
-    uuid = "43d804af-8f11-4c90-9071-6fc526fde5e4"
+    uuid = "" # data.ktcloud_networks 로 조회한 id (refId)
   }
 
   user_data = <<-EOT
