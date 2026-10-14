@@ -10,12 +10,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/7-Victory/terraform-provider-ktcloud/internal/client"
@@ -26,6 +28,33 @@ const (
 	serverDeleteTimeout = 20 * time.Minute
 	serverResizeTimeout = 15 * time.Minute
 )
+
+// rootVolumeSizeValidator 는 kt cloud 서버 생성 API 가이드가 명시한 허용값(Linux: 50,
+// Windows: 100)만 통과시킵니다. 그 외 값은 terraform plan 단계에서 바로 에러로 막습니다.
+type rootVolumeSizeValidator struct{}
+
+func (rootVolumeSizeValidator) Description(context.Context) string {
+	return "root_volume_size 는 50(Linux) 또는 100(Windows) 만 허용됩니다."
+}
+
+func (v rootVolumeSizeValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (rootVolumeSizeValidator) ValidateInt64(_ context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	v := req.ConfigValue.ValueInt64()
+	if v != 50 && v != 100 {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"잘못된 root_volume_size 값",
+			fmt.Sprintf("kt cloud API는 루트 볼륨 크기로 50(Linux) 또는 100(Windows)만 "+
+				"허용합니다. 입력값: %d", v),
+		)
+	}
+}
 
 var (
 	_ resource.Resource                = (*serverResource)(nil)
@@ -141,18 +170,29 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"root_volume_size": schema.Int64Attribute{
 				Optional: true,
-				MarkdownDescription: "루트 볼륨 크기(GB). 지정하면 이미지를 볼륨으로 부팅합니다" +
-					"(block_device_mapping_v2). 미지정 시 이미지 기본값을 사용합니다.",
+				Computed: true,
+				MarkdownDescription: "루트 볼륨 크기(GB). kt cloud API는 **50(Linux) 또는 " +
+					"100(Windows)만 허용**합니다. 생략하면 `50`(Linux 이미지 기준)으로 기본 " +
+					"설정됩니다 — **Windows 이미지라면 반드시 100으로 직접 지정하세요.**",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
+				Default: int64default.StaticInt64(50),
+				Validators: []validator.Int64{
+					rootVolumeSizeValidator{},
+				},
 			},
 			"root_volume_type": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "루트 볼륨 타입. `root_volume_size` 와 함께 사용합니다.",
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "루트 볼륨 타입. `root_volume_size` 와 함께 사용합니다. " +
+					"`GET /volume/{project_id}/types` 응답의 `name` 값을 그대로 쓸 수 있고, " +
+					"축약형 `\"SSD\"`/`\"HDD\"`는 각각 `\"SSD-2000iops\"`/`\"HDD-2000iops\"`로 " +
+					"자동 치환됩니다. 생략하면 `\"HDD-2000iops\"`가 기본값입니다.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Default: stringdefault.StaticString(defaultVolumeType),
 			},
 			"metadata": schema.MapAttribute{
 				Optional:            true,
@@ -248,20 +288,17 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		opts.Metadata = meta
 	}
 
-	// 루트 볼륨 크기를 지정하면 block_device_mapping_v2 로 부팅합니다.
-	if !plan.RootVolumeSize.IsNull() && plan.RootVolumeSize.ValueInt64() > 0 {
-		opts.BlockDevices = []client.BlockDevice{{
-			BootIndex:           "0",
-			UUID:                plan.ImageID.ValueString(),
-			SourceType:          "image",
-			DestinationType:     "volume",
-			VolumeSize:          plan.RootVolumeSize.ValueInt64(),
-			DeleteOnTermination: true,
-			VolumeType:          stringValue(plan.RootVolumeType),
-		}}
-	} else {
-		opts.ImageRef = plan.ImageID.ValueString()
-	}
+	// kt cloud 서버 생성 API는 block_device_mapping_v2 가 필수라, root_volume_size
+	// 생략 여부와 상관없이 항상 이 방식으로 부팅합니다 (미지정 시 스키마 Default 로 50 적용).
+	opts.BlockDevices = []client.BlockDevice{{
+		BootIndex:           "0",
+		UUID:                plan.ImageID.ValueString(),
+		SourceType:          "image",
+		DestinationType:     "volume",
+		VolumeSize:          plan.RootVolumeSize.ValueInt64(),
+		DeleteOnTermination: true,
+		VolumeType:          resolveVolumeType(stringValue(plan.RootVolumeType)),
+	}}
 
 	created, err := r.client.CreateServer(ctx, opts)
 	if err != nil {

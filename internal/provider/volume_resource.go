@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -91,13 +92,17 @@ func (r *volumeResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "볼륨 크기(GB). 값을 늘리면 온라인 확장(os-extend)을 시도하며, 줄이면 오류가 발생합니다.",
 			},
 			"volume_type": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				MarkdownDescription: "볼륨 타입.",
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "볼륨 타입. `GET /volume/{project_id}/types` 응답의 " +
+					"`name` 값을 그대로 쓸 수 있고, 축약형 `\"SSD\"`/`\"HDD\"`는 각각 " +
+					"`\"SSD-2000iops\"`/`\"HDD-2000iops\"`로 자동 치환됩니다. 생략하면 " +
+					"`\"HDD-2000iops\"`가 기본값입니다.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Default: stringdefault.StaticString(defaultVolumeType),
 			},
 			"availability_zone": schema.StringAttribute{
 				Optional:            true,
@@ -159,7 +164,7 @@ func (r *volumeResource) Create(ctx context.Context, req resource.CreateRequest,
 		Name:          stringValue(plan.Name),
 		Description:   stringValue(plan.Description),
 		Size:          plan.Size.ValueInt64(),
-		VolumeType:    stringValue(plan.VolumeType),
+		VolumeType:    resolveVolumeType(stringValue(plan.VolumeType)),
 		Zone:          stringValue(plan.AvailabilityZone),
 		SnapshotID:    stringValue(plan.SnapshotID),
 		UsagePlanType: stringValue(plan.UsagePlanType),
@@ -273,7 +278,9 @@ func applyVolumeToModel(m *volumeResourceModel, vol *client.Volume) {
 	m.Size = types.Int64Value(vol.Size)
 	m.Status = types.StringValue(vol.Status)
 	m.CreatedAt = types.StringValue(vol.CreatedAt)
-	m.VolumeType = types.StringValue(vol.VolumeType)
+	// volume_type 은 일부러 API 응답으로 덮어쓰지 않습니다 — "SSD"/"HDD" 축약형을
+	// 쓴 경우 실제 kt cloud 값("SSD-2000iops" 등)과 config 값이 달라져서 매번
+	// 재생성을 시도하는 문제가 생기기 때문입니다 (resolveVolumeType 참고).
 	m.AvailabilityZone = types.StringValue(vol.Zone)
 	// kt cloud 는 조회 응답에서 bootable 을 "true"/"false" 문자열로 돌려줍니다.
 	m.Bootable = types.BoolValue(strings.EqualFold(vol.Bootable, "true"))

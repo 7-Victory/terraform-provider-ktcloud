@@ -85,8 +85,8 @@ resource "ktcloud_server" "web" {
 | `keypair_name` | string, 필수 | kt cloud API 상 Null 불가. 변경 시 **재생성** |
 | `availability_zone` | string | 생략 시 기본값 `"DX-M1"`(d1 zone 기준). 변경 시 **재생성** |
 | `user_data` | string | 평문 입력. 변경 시 **재생성** |
-| `root_volume_size` | number | GB. 지정 시 `block_device_mapping_v2` 로 부팅 |
-| `root_volume_type` | string | 위와 함께 사용 |
+| `root_volume_size` | number | GB. kt cloud API 상 **50(Linux) 또는 100(Windows)만 허용**. 생략 시 기본값 `50` |
+| `root_volume_type` | string | `root_volume_size`와 함께 사용. `"SSD"`/`"HDD"` 축약형은 각각 `SSD-2000iops`/`HDD-2000iops`로 자동 변환되고, 그 외엔 `GET /volume/{project_id}/types` 응답의 `name` 값을 그대로 씀. 생략 시 기본값 `HDD-2000iops`. kt cloud 공식 서버 생성 가이드엔 없는 필드지만 실제로 반영됨을 확인(2026-10-14) |
 | `metadata` | map(string) | 변경 시 **재생성** |
 | `networks` | block × N | `uuid`(필수), `fixed_ip`(선택). 변경 시 **재생성** |
 
@@ -135,8 +135,9 @@ terraform import ktcloud_keypair.demo <키페어이름>
 
 ```hcl
 resource "ktcloud_volume" "data" {
-  name = "data-01"
-  size = 100          # GB. 늘리면 os-extend, 줄이면 오류
+  name        = "data-01"
+  size        = 100          # GB. 늘리면 os-extend, 줄이면 오류
+  volume_type = "SSD"         # "SSD"→SSD-2000iops, "HDD"→HDD-2000iops 로 자동 변환. 생략 시 HDD-2000iops
 
   # usage_plan_type = "hourly"  # "hourly" | "monthly" (기본값 monthly). 미검증 옵션
   # bootable        = true      # 부팅 가능 볼륨 여부, 기본값 false. 미검증 옵션

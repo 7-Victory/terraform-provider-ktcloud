@@ -13,8 +13,9 @@ kt cloud 블록 스토리지 볼륨을 관리합니다.
 
 ```terraform
 resource "ktcloud_volume" "data" {
-  name = "data-01"
-  size = 100 # GB. 늘리면 os-extend, 줄이면 오류
+  name        = "data-01"
+  size        = 100  # GB. 늘리면 os-extend, 줄이면 오류
+  volume_type = "SSD" # "SSD"→SSD-2000iops, "HDD"→HDD-2000iops. 생략 시 HDD-2000iops
 
   # usage_plan_type = "hourly"  # "hourly" | "monthly" (기본값 monthly)
   # bootable        = true      # 부팅 가능 볼륨 여부, 기본값 false
@@ -31,7 +32,7 @@ resource "ktcloud_volume" "data" {
 
 - `name` (String) 볼륨 이름.
 - `description` (String) 볼륨 설명.
-- `volume_type` (String) 볼륨 타입. 변경 시 **재생성**.
+- `volume_type` (String) 볼륨 타입. `"SSD"`/`"HDD"` 축약형은 각각 `SSD-2000iops`/`HDD-2000iops`로 자동 변환되며, 그 외 값은 `GET /volume/{project_id}/types` 응답의 `name`을 그대로 씁니다. 생략하면 `HDD-2000iops`가 기본값입니다. 변경 시 **재생성**.
 - `availability_zone` (String) 가용 영역. 변경 시 **재생성**.
 - `snapshot_id` (String) 스냅샷으로부터 복원할 경우의 스냅샷 ID. 변경 시 **재생성**.
 - `usage_plan_type` (String) 과금 단위. `hourly` 또는 `monthly`(kt cloud 기본값 `monthly`). 생성 요청에만 반영되며, kt cloud 조회 API 응답에 이 필드가 없어서 조회 시 값을 다시 가져오지는 않습니다. 변경 시 **재생성**.
