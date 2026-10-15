@@ -139,7 +139,7 @@ resource "ktcloud_volume" "data" {
   size        = 100          # GB. 늘리면 os-extend, 줄이면 오류
   volume_type = "SSD"         # "SSD"/"HDD" 축약형은 size 에 맞는 IOPS 등급으로 자동 변환. 생략 시 HDD
 
-  usage_plan_type = "hourly"  # "hourly"(기본값) | "monthly". 비용 절감을 위해 provider 기본값은 hourly
+  # usage_plan_type = "hourly"  # "hourly" | "monthly"(기본값). 단기 테스트면 hourly로 비용 절감
   # bootable      = true      # 부팅 가능 볼륨 여부, 기본값 false. 미검증 옵션
 }
 

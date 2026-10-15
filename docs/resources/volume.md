@@ -17,7 +17,7 @@ resource "ktcloud_volume" "data" {
   size        = 100  # GB. 늘리면 os-extend, 줄이면 오류
   volume_type = "SSD" # "SSD"/"HDD" 는 size 에 맞는 IOPS 등급으로 자동 변환. 생략 시 "HDD"
 
-  usage_plan_type = "hourly" # "hourly"(기본값) | "monthly"
+  # usage_plan_type = "hourly" # "hourly" | "monthly"(기본값). 단기 테스트면 hourly로 비용 절감
   # bootable      = true     # 부팅 가능 볼륨 여부, 기본값 false
 }
 ```
@@ -52,7 +52,7 @@ resource "ktcloud_volume" "data" {
   콘솔이나 `GET /volume/{project_id}/volumes/{id}` 응답에서 확인하세요.
 - `availability_zone` (String) 가용 영역. 변경 시 **재생성**.
 - `snapshot_id` (String) 스냅샷으로부터 복원할 경우의 스냅샷 ID. 변경 시 **재생성**.
-- `usage_plan_type` (String) 과금 단위. `hourly` 또는 `monthly`. 생략하면 비용 절감을 위해 **`hourly`를 기본값**으로 둡니다(kt cloud 자체 기본값은 `monthly`). 생성 요청에만 반영되며, kt cloud 조회 API 응답에 이 필드가 없어서 조회 시 값을 다시 가져오지는 않습니다. 변경 시 **재생성**.
+- `usage_plan_type` (String) 과금 단위. `hourly` 또는 `monthly`. 생략하면 `"monthly"`가 기본값입니다(kt cloud 자체 기본값과 동일). 단기 테스트용 볼륨이라 비용을 줄이고 싶다면 `"hourly"`를 직접 지정하세요. 생성 요청에만 반영되며, kt cloud 조회 API 응답에 이 필드가 없어서 조회 시 값을 다시 가져오지는 않습니다. 변경 시 **재생성**.
 - `bootable` (Boolean) 부팅 가능한 볼륨으로 생성할지 여부. 기본값 `false`. 조회 시 kt cloud 응답을 기준으로 갱신됩니다. 변경 시 **재생성**.
 
 ### Read-Only
