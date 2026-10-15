@@ -86,7 +86,7 @@ resource "ktcloud_server" "web" {
 | `availability_zone` | string | 생략 시 기본값 `"DX-M1"`(d1 zone 기준). 변경 시 **재생성** |
 | `user_data` | string | 평문 입력. 변경 시 **재생성** |
 | `root_volume_size` | number | GB. kt cloud API 상 **50(Linux) 또는 100(Windows)만 허용**. 생략 시 기본값 `50` |
-| `root_volume_type` | string | `root_volume_size`와 함께 사용. `"SSD"`/`"HDD"` 축약형은 각각 `SSD-2000iops`/`HDD-2000iops`로 자동 변환되고, 그 외엔 `GET /volume/{project_id}/types` 응답의 `name` 값을 그대로 씀. 생략 시 기본값 `HDD-2000iops`. kt cloud 공식 서버 생성 가이드엔 없는 필드지만 실제로 반영됨을 확인(2026-10-14) |
+| `root_volume_type` | string | `root_volume_size`와 함께 사용. `"SSD"`/`"HDD"` 축약형은 `root_volume_size`에 맞는 IOPS 등급으로 자동 변환되고(`ktcloud_volume.volume_type` 참고), 그 외엔 `GET /volume/{project_id}/types` 응답의 `name` 값을 그대로 씀. 생략 시 기본값 `"HDD"`. kt cloud 공식 서버 생성 가이드엔 없는 필드지만 실제로 반영됨을 확인(2026-10-14) |
 | `metadata` | map(string) | 변경 시 **재생성** |
 | `networks` | block × N | `uuid`(필수), `fixed_ip`(선택). 변경 시 **재생성** |
 
@@ -137,10 +137,10 @@ terraform import ktcloud_keypair.demo <키페어이름>
 resource "ktcloud_volume" "data" {
   name        = "data-01"
   size        = 100          # GB. 늘리면 os-extend, 줄이면 오류
-  volume_type = "SSD"         # "SSD"→SSD-2000iops, "HDD"→HDD-2000iops 로 자동 변환. 생략 시 HDD-2000iops
+  volume_type = "SSD"         # "SSD"/"HDD" 축약형은 size 에 맞는 IOPS 등급으로 자동 변환. 생략 시 HDD
 
-  # usage_plan_type = "hourly"  # "hourly" | "monthly" (기본값 monthly). 미검증 옵션
-  # bootable        = true      # 부팅 가능 볼륨 여부, 기본값 false. 미검증 옵션
+  usage_plan_type = "hourly"  # "hourly"(기본값) | "monthly". 비용 절감을 위해 provider 기본값은 hourly
+  # bootable      = true      # 부팅 가능 볼륨 여부, 기본값 false. 미검증 옵션
 }
 
 resource "ktcloud_volume_attachment" "data" {
@@ -149,6 +149,25 @@ resource "ktcloud_volume_attachment" "data" {
   # device  = "/dev/vdb"   # 생략 시 자동 할당
 }
 ```
+
+> ⚠️ `size`는 가이드상 "300GB 초과 시 400/500/1000/2000만 가능"이라고 돼 있지만 실제로는
+> `850` 같은 값도 생성됩니다(강제 아님).
+>
+> **`volume_type = "SSD"`/`"HDD"`는 `size`에 맞는 구체적인 IOPS 등급으로 자동 변환됩니다**
+> (공식 가이드 `/home/cloud-user/terraform/volumeiops` 기준, 실 계정 100~700GB 전 구간 검증 완료):
+>
+> | 크기 | SSD | HDD |
+> |---|---|---|
+> | ~100GB | 2,000 IOPS | 2,000 IOPS |
+> | ~200GB | 4,800 IOPS | 4,800 IOPS |
+> | ~300GB | 6,400 IOPS | 5,600 IOPS |
+> | ~400GB | 6,400 IOPS | 6,000 IOPS (400GB 이상 동일) |
+> | ~600GB | 8,000 IOPS | 6,000 IOPS |
+> | 700GB~ | 9,600 IOPS | 6,000 IOPS |
+>
+> `volume_type`을 생략하면 기본값은 `"HDD"`(size에 맞는 등급으로 자동 변환)입니다.
+> 이 리소스는 `volume_type`을 조회로 재동기화하지 않아 state에는 config에 적은 값
+> (`"SSD"`/`"HDD"` 등) 그대로 남고, 실제 적용된 정확한 등급 문자열은 콘솔에서 확인하세요.
 
 ```bash
 terraform import ktcloud_volume.data            <VOLUME-UUID>

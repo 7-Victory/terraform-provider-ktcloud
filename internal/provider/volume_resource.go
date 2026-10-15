@@ -122,11 +122,15 @@ func (r *volumeResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"usage_plan_type": schema.StringAttribute{
 				Optional: true,
-				MarkdownDescription: "과금 단위. `hourly` 또는 `monthly` (kt cloud 기본값 " +
-					"`monthly`). 미검증 옵션입니다.",
+				Computed: true,
+				MarkdownDescription: "과금 단위. `hourly` 또는 `monthly`. 생략하면 비용 절감을 " +
+					"위해 **`hourly`를 기본값**으로 둡니다 (kt cloud 자체 기본값은 `monthly`라 " +
+					"장기간 켜둘 계획이면 명시적으로 `monthly`를 지정하세요).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
+				Default: stringdefault.StaticString("hourly"),
 			},
 			"bootable": schema.BoolAttribute{
 				Optional: true,
@@ -164,7 +168,7 @@ func (r *volumeResource) Create(ctx context.Context, req resource.CreateRequest,
 		Name:          stringValue(plan.Name),
 		Description:   stringValue(plan.Description),
 		Size:          plan.Size.ValueInt64(),
-		VolumeType:    resolveVolumeType(stringValue(plan.VolumeType)),
+		VolumeType:    resolveVolumeType(stringValue(plan.VolumeType), plan.Size.ValueInt64()),
 		Zone:          stringValue(plan.AvailabilityZone),
 		SnapshotID:    stringValue(plan.SnapshotID),
 		UsagePlanType: stringValue(plan.UsagePlanType),

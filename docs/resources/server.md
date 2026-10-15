@@ -19,7 +19,7 @@ resource "ktcloud_server" "web" {
   keypair_name      = ktcloud_keypair.demo.name
   availability_zone = "DX-M1"
   root_volume_size  = 50
-  root_volume_type  = "SSD" # "SSD"→SSD-2000iops, "HDD"→HDD-2000iops. 생략 시 HDD-2000iops
+  root_volume_type  = "SSD" # "SSD"/"HDD" 는 root_volume_size 에 맞는 IOPS 등급으로 자동 변환. 생략 시 "HDD"
 
   networks {
     uuid     = var.network_id # /nsm/v1/network 응답의 refId (networkId 아님)
@@ -48,7 +48,7 @@ resource "ktcloud_server" "web" {
 - `availability_zone` (String) 가용 영역. 생략하면 `"DX-M1"`(d1 zone 기준)으로 기본 설정됩니다. **d1이 아닌 zone(d2/gd1/gd4)을 쓰신다면 이 기본값이 틀릴 수 있으니 반드시 직접 지정하세요.** 변경 시 **재생성**.
 - `user_data` (String) cloud-init 스크립트. 평문으로 입력하면 Provider가 base64로 인코딩해 전송합니다. 변경 시 **재생성**.
 - `root_volume_size` (Number) 루트 볼륨 크기(GB). kt cloud API는 **50(Linux) 또는 100(Windows)만 허용**하며, 그 외 값은 plan 단계에서 에러로 막힙니다. 생략하면 `50`(Linux 이미지 기준)으로 기본 설정됩니다 — **Windows 이미지라면 반드시 100으로 직접 지정하세요.** 변경 시 **재생성**.
-- `root_volume_type` (String) 루트 볼륨 타입. `root_volume_size`와 함께 사용합니다. `"SSD"`/`"HDD"` 축약형은 각각 `SSD-2000iops`/`HDD-2000iops`로 자동 변환되며, 그 외 값은 `GET /volume/{project_id}/types` 응답의 `name`을 그대로 씁니다. 생략하면 `HDD-2000iops`가 기본값입니다. kt cloud 공식 서버 생성 가이드엔 이 필드가 없지만, 실제로 지정한 타입대로 볼륨이 생성됨을 확인했습니다. 변경 시 **재생성**.
+- `root_volume_type` (String) 루트 볼륨 타입. `root_volume_size`와 함께 사용합니다. `"SSD"`/`"HDD"` 축약형은 `root_volume_size`에 맞는 IOPS 등급으로 자동 변환되며(매핑 표는 [`ktcloud_volume`](volume.md#volume_type) 문서 참고), 그 외 값은 `GET /volume/{project_id}/types` 응답의 `name`을 그대로 씁니다. 생략하면 `"HDD"`가 기본값입니다. `root_volume_size`가 50 또는 100으로 제한돼 있어 실제로는 항상 `2000iops` 등급으로 귀결됩니다. kt cloud 공식 서버 생성 가이드엔 이 필드가 없지만, 실제로 지정한 타입대로 볼륨이 생성됨을 확인했습니다. 변경 시 **재생성**.
 - `metadata` (Map of String) VM 메타데이터 key/value. 변경 시 **재생성**.
 - `networks` (Block List) 연결할 네트워크(Tier) 목록. 순서가 NIC 순서를 결정합니다. 변경 시 **재생성**. (see [below for nested schema](#nestedblock--networks))
 

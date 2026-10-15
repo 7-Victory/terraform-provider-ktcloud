@@ -297,7 +297,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		DestinationType:     "volume",
 		VolumeSize:          plan.RootVolumeSize.ValueInt64(),
 		DeleteOnTermination: true,
-		VolumeType:          resolveVolumeType(stringValue(plan.RootVolumeType)),
+		VolumeType:          resolveVolumeType(stringValue(plan.RootVolumeType), plan.RootVolumeSize.ValueInt64()),
 	}}
 
 	created, err := r.client.CreateServer(ctx, opts)
